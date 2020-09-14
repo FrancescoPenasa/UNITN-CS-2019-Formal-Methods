@@ -1,0 +1,70 @@
+-- go_msat
+-- msat_check_ltlspec_bmc -k 15
+
+MODULE main
+  
+  DEFINE 
+	  end_state := pc = l4;
+	  computing := pc != l4;
+
+	  factorial_0 := READ(arr, toint(0)) = 1;
+	  factorial_n := READ(arr, value) = (toint(READ(arr, toint(value - 1))) * value);
+
+	  fac := READ(arr, toint(i - 1));
+
+  FROZENVAR
+  	value : integer; -- input value
+
+  VAR
+	  arr : array integer of integer; -- stack
+	  pc : {l0, l1, l2, l3, l4}; -- program counter
+	  n : integer; -- index
+      i : integer; -- counter index
+
+  INVAR
+    i = value - n;
+
+  INIT 
+  	pc = l0 & n = value;
+
+  ASSIGN
+  	init(arr) := CONSTARRAY(typeof(arr), 0); -- init the stack to 0
+
+    next(pc) := case
+      	pc=l0 : l1;
+      	pc=l1 & n <= 0 	: l2; -- base case
+      	pc=l1 & n > 0 	: l3; -- rec call
+      	pc=l2 : l4;
+      	pc=l3 : l1;
+        TRUE  : pc;
+    esac;
+    
+    next(n) := case
+      	n>0 & pc=l3: n - 1;
+        TRUE  : n;
+    esac;
+
+    next(arr) := case
+      	i<0: WRITE(arr, 0, 0);
+        i=0: WRITE(arr, 0, 1);
+        i>0: WRITE(arr, i, toint(i * fac));
+        TRUE : arr;
+    esac;
+
+-- READ ( arr , index ) -- read function with first argument
+-- an array and second index
+-- WRITE ( arr, index, value ) -- write function with first
+-- argument an array, second index, and third value to be stored
+
+  LTLSPEC
+  	!(value = 0  & (computing U (end_state & factorial_0)))
+  LTLSPEC
+  	!(value = 1  & (computing U (end_state & factorial_n)))
+  LTLSPEC
+  	!(value = 2  & (computing U (end_state & factorial_n)))
+  LTLSPEC
+  	!(value = 3  & (computing U (end_state & factorial_n)))
+  LTLSPEC
+  	!(value = 4  & (computing U (end_state & factorial_n)))
+  LTLSPEC
+  	!(value = 5  & (computing U (end_state & factorial_n)))

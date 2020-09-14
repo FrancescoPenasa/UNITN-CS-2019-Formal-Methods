@@ -1,0 +1,76 @@
+-- go_msat
+-- msat_check_ltlspec_bmc -k 16
+
+MODULE main
+  
+  DEFINE 
+    end_state := pc = l4;
+    computing := pc != l4;
+
+    fibonacci_0 := toint(READ(arr, 0)) = 0;
+    fibonacci_1 := toint(READ(arr, 1)) = 1;
+    fibonacci_n := (toint(READ(arr, value)) = toint(READ(arr, value - 1) + READ(arr, value - 2)));
+
+    fib := READ(arr, toint(i - 1)) + READ(arr, toint(i - 2));
+
+  FROZENVAR
+    value : integer; -- input value
+
+  VAR
+    arr : array integer of integer; -- stack
+    pc : {l0, l1, l2, l3, l4}; -- program counter
+    n : integer; -- index
+    i : integer; -- counter index
+
+  INVAR
+    i = value - n;
+
+  INIT 
+    pc = l0 & n = value;
+
+  ASSIGN
+    init(arr) := CONSTARRAY(typeof(arr), 0); -- init the stack to 0
+
+    next(pc) := case
+        pc=l0 : l1;
+        pc=l1 & n <= 0  : l2; -- base case 1
+        pc=l1 & n = 1   : l2; -- base case 2
+        pc=l1 & n > 1   : l3; -- recursive call
+        pc=l2 : l4;
+        pc=l3 : l1;
+        TRUE  : pc;
+    esac;
+    
+    next(n) := case
+        n>0 & pc=l3: n - 1;
+        TRUE  : n;
+    esac;
+
+    next(arr) := case
+        i<=0: WRITE(arr, i, 0);
+        i=1: WRITE(arr, i, 1);
+        i>0: WRITE(arr, i, fib);
+        TRUE : arr;
+    esac;
+
+-- READ ( arr , index ) -- read function with first argument
+-- an array and second index
+-- WRITE ( arr, index, value ) -- write function with first
+-- argument an array, second index, and third value to be stored
+
+  LTLSPEC
+    !(value = 0  & (computing U end_state & fibonacci_0))
+  LTLSPEC
+    !(value = 1  & (computing U end_state & fibonacci_1))
+  LTLSPEC
+    !(value = 2  & (computing U end_state & fibonacci_n))
+  LTLSPEC
+    !(value = 3  & (computing U end_state & fibonacci_n))
+  LTLSPEC
+    !(value = 4  & (computing U end_state & fibonacci_n))
+  LTLSPEC
+    !(value = 5  & (computing U end_state & fibonacci_n))
+  LTLSPEC
+    !(value = 6  & (computing U end_state & fibonacci_n))
+  LTLSPEC
+    !(value = 7  & (computing U end_state & fibonacci_n))
